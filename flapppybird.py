@@ -5,17 +5,20 @@ pygame.init()
 clock = pygame.time.Clock()
 
 # Constants
+font=pygame.font.SysFont("Arial",45)
 WIDTH = 864
 HEIGHT = 768
 PIPE_GAP = 100
 GROUND_HEIGHT = 700
-GROUND_SPEED = 1
+GROUND_SPEED = 5     
 FPS = 30
 PIPE_SPEED=5
-PIPE_FREQUENCY=2000
+PIPE_FREQUENCY=2750
 last_pipe=pygame.time.get_ticks()
 COOLDOWN_TIMER = 10  # Adjust this for speed of animation
 gameover = False
+flying=True
+score=0
 
 # Screen setup
 scr = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -47,6 +50,7 @@ class Pipe(pygame.sprite.Sprite):
         self.rect.x -= PIPE_SPEED
         if self.rect.right < 0:
             self.kill()
+            
         
 # Bird class
 class Bird(pygame.sprite.Sprite):
@@ -74,7 +78,20 @@ class Bird(pygame.sprite.Sprite):
                 self.counter = 0
                 self.index = (self.index + 1) % len(self.images)
                 self.image = self.images[self.index]
+class Button():
+    def __init__(self,x,y):
+        self.image = pygame.image.load("restart.png").convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.center=[x,y]
+    def draw(self):
+        click=False
+        pos=pygame.mouse.get_pos()
+        if self.rect.colidepoint(pos):
+            if pygame.mouse.get_pressed()[0]==1:
+                click=True
+        scr.blit(self.image,(self.rect.x,self.rect.y))
 
+        return click
 # Initialize groups and objects
 bird_group = pygame.sprite.Group()
 flappy = Bird(100, int(HEIGHT / 2))
@@ -84,6 +101,13 @@ pipe_group=pygame.sprite.Group()
 
 running = True
 groundx = 0
+
+
+    
+def reset():
+    pipe_group.empty()
+    flappy.rect.x=100
+    flappy.rect.y=int(HEIGHT/2)
 
 # Main game loop
 while running:
@@ -110,6 +134,7 @@ while running:
         pipe_group.add(bottom_pipe)
         pipe_group.add(top_pipe)
         last_pipe = time_now
+        score+=1
     # Draw everything
     scr.blit(bg, (0, 0))
     scr.blit(ground, (groundx, GROUND_HEIGHT))
@@ -117,9 +142,19 @@ while running:
     bird_group.draw(scr)
     pipe_group.draw(scr)
     pipe_group.update()
+    score1=font.render(f"Score: {score}",True,"black")
+    scr.blit(score1,(0,0))
 
+    if pygame.sprite.groupcollide(bird_group,pipe_group,False,False) or flappy.rect.bottom>768 or flappy.rect.top<0:
+        gameover=True
+        flying=False
+        PIPE_SPEED=0
+        GROUND_SPEED=0
+    scr.blit(restart_img, (WIDTH // 2 - restart_img.get_width() // 2, HEIGHT // 2 - restart_img.get_height() // 2))
     if gameover:
-        scr.blit(restart_img, (WIDTH // 2 - restart_img.get_width() // 2, HEIGHT // 2 - restart_img.get_height() // 2))
+        gameover=False
+        score=0
+        reset()
 
     # Update the display
     pygame.display.update()
